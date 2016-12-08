@@ -4,7 +4,7 @@ Home size: 7x5
 Ignore tunnel
 
 Step 1: generate the distribution of the distance (shortest path) between any two accessible locations in the maze.
-- represent the human designed mazes by 0 and 1 in txt files
+- represent the human designed mazes by 0 and 1 in txt files, namely level1 level2 ...
 - code a function to find and calculate the shortest path
 - go through all the accessible locations and calculate the distances
 - plot the density
