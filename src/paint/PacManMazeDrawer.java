@@ -14,7 +14,7 @@ import java.awt.image.ColorModel;
  * Respect to Google Java Style Guide:
  * https://google.github.io/styleguide/javaguide.html
  */
-public class MazeDrawer extends JComponent {
+public class PacManMazeDrawer extends JComponent {
   int width = 26*20;
   int height = 29*20;
   int dimX;
@@ -24,7 +24,7 @@ public class MazeDrawer extends JComponent {
   int[][] maze;
 
 
-  public MazeDrawer(int[][] maze) {
+  public PacManMazeDrawer(int[][] maze) {
     this.maze = maze;
     this.dimY = maze.length;
     this.dimX = maze[0].length;

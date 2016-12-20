@@ -8,8 +8,29 @@ package maze;
  * Respect to Google Java Style Guide:
  * https://google.github.io/styleguide/javaguide.html
  */
-public interface Maze {
-  void plot();
-  int getWidth();
-  int getHeight();
+public abstract class Maze {
+  protected int[][] maze;
+
+  public Maze(int[][] maze) {
+    this.maze = maze;
+  }
+
+  public Maze(int dimX, int dimY) {
+    this.maze = new int[dimX][dimY];
+  }
+
+  public Maze(int dim) {
+    this.maze = new int[dim][dim];
+  }
+
+  public abstract void plot();
+
+  protected abstract int getWidth();
+
+  protected abstract int getHeight();
+
+  protected int calShortestPath(int x1, int y1, int x2, int y2) {
+    int length = Integer.MAX_VALUE;
+    return length;
+  }
 }

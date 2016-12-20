@@ -2,7 +2,6 @@ package paint;
 
 import javax.swing.*;
 
-import java.awt.*;
 import java.io.*;
 
 
@@ -38,7 +37,7 @@ public class DrawHumanDesignPacman {
       br.close();
 //      System.out.println(maze.toString());
       JFrame frame = new JFrame();
-      MazeDrawer md = new MazeDrawer(maze);
+      PacManMazeDrawer md = new PacManMazeDrawer(maze);
       frame.add(md);
       frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
       frame.setBounds(0,0, (int) (md.getWidth()),(int) (md.getHeight()+md.getWinSizeY()));
