@@ -1,4 +1,4 @@
-package optimiser;
+package optimiser.eas;
 
 
 import java.util.AbstractList;

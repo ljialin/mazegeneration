@@ -1,4 +1,4 @@
-package optimiser;
+package optimiser.eas;
 
 /**
  * Created by Jialin Liu on 08/12/2016.
