@@ -36,13 +36,4 @@ public class PacmanMaze extends Maze {
     frame.setVisible(true);
   }
 
-  @Override
-  protected int getWidth() {
-    return 0;
-  }
-
-  @Override
-  protected int getHeight() {
-    return 0;
-  }
 }

@@ -9,7 +9,16 @@ package fitness;
  * https://google.github.io/styleguide/javaguide.html
  */
 public class Fitness {
-  public static double squareDist(double[] current, double[] target) {
+  public static double squareDirtDist(double[] current, double[] target) {
+    double sd = 0.0;
+    assert (current.length == target.length);
+    for (int i=0; i<current.length; i++) {
+      sd += (current[i] - target[i])*(current[i] - target[i]);
+    }
+    return sd;
+  }
+
+  public static double shortestDist(double[] current, double[] target) {
     double sd = 0.0;
     assert (current.length == target.length);
     for (int i=0; i<current.length; i++) {

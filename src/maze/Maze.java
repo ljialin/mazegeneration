@@ -1,11 +1,11 @@
 package maze;
 
+import javafx.scene.control.Tab;
+
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
-import java.util.Stack;
+import java.util.Map;
 
 /**
  * Created by Jialin Liu on 08/12/2016.
@@ -16,34 +16,111 @@ import java.util.Stack;
  * https://google.github.io/styleguide/javaguide.html
  */
 public abstract class Maze {
+  private final static int ACCESSIBLE = 1;
+  private final static int NON_ACCESSIBLE = 0;
+  private final static int HUGE_POSITIVE = 1000000;
+  protected static HashMap<Integer, int[]> idxCellHashMap;
+
   protected int[][] maze;
+  protected ArrayList<Integer> accessibleCellIdx;
+
+  protected ArrayList<Integer> distDistribution;
 
   public Maze(int[][] maze) {
     this.maze = maze;
+    this.accessibleCellIdx = new ArrayList<>();
+    this.idxCellHashMap = new HashMap<>();
+    fillIdxCellHashMap();
+    updateNbAccessibleCell();
+  }
+
+  public void updateNbAccessibleCell() {
+    if (this.accessibleCellIdx == null) {
+      this.accessibleCellIdx = new ArrayList<>();
+    }
+    accessibleCellIdx.clear();
+    for (int i=0;i<maze.length;i++) {
+      for (int j = 0; j < maze[0].length; j++) {
+        if (this.maze[i][j] == ACCESSIBLE) {
+          this.accessibleCellIdx.add(i * maze[0].length + j);
+//          System.out.println("Point " + i + "," + j + " is " + maze[i][j] + " accessible");
+        }
+      }
+    }
+  }
+
+  public void updateMaze(int[] bits) {
+    assert (bits.length == maze.length*maze[0].length);
+    for (int i=0;i<maze.length;i++) {
+      for (int j = 0; j < maze[0].length; j++) {
+        maze[i][j] = bits[i * maze[0].length + j];
+      }
+    }
+    updateNbAccessibleCell();
+  }
+
+  public void fillIdxCellHashMap() {
+    if (this.idxCellHashMap == null) {
+      this.idxCellHashMap = new HashMap<>();
+    }
+    for (int i=0;i<maze.length;i++) {
+      for (int j = 0; j < maze[0].length; j++) {
+        int[] pos = new int[]{i, j};
+        this.idxCellHashMap.put(i * maze[0].length + j, pos);
+      }
+    }
   }
 
   public Maze(int dimX, int dimY) {
     this.maze = new int[dimX][dimY];
+    this.accessibleCellIdx = new ArrayList<>();
+    this.idxCellHashMap = new HashMap<>();
+    fillIdxCellHashMap();
   }
 
   public Maze(int dim) {
     this.maze = new int[dim][dim];
+    this.accessibleCellIdx = new ArrayList<>();
+    this.idxCellHashMap = new HashMap<>();
+    fillIdxCellHashMap();
   }
 
-  public abstract void plot();
+  public int getWidth() {
+    return this.maze[0].length;
+  }
 
-  protected abstract int getWidth();
+  public int getHeight() {
+    return this.maze.length;
+  }
 
-  protected abstract int getHeight();
-  
+  public static HashMap<Integer, int[]> getIdxCellHashMap() {
+    return idxCellHashMap;
+  }
+
+  public int[][] getMaze() {
+    return maze;
+  }
+
+  public ArrayList<Integer> getAccessibleCellIdx() {
+    return accessibleCellIdx;
+  }
+
+  public int getNbAccessibleCell() {
+    return this.accessibleCellIdx.size();
+  }
+
+  public int[] getCellPosByIdx(int idx) {
+    return idxCellHashMap.get(idx);
+  }
+
   public String toString(){
-	  
+
 	  String st = "";
 	  for(int i=0;i<maze.length;i++)
 	  {
 		  for(int j=0;j<maze[0].length;j++)
 		  {
-			  if(maze[i][j]==0)
+			  if(maze[i][j]==NON_ACCESSIBLE)
 			  st += "0";
 			  else
 				  st+=" ";
@@ -52,8 +129,44 @@ public abstract class Maze {
 	  }
 	  return st;
   }
-  
-  
+
+  public ArrayList<Integer> distDistribution() {
+    this.distDistribution = new ArrayList<>();
+//    System.out.println("==============" + this.accessibleCellIdx.size());
+    for (int i=0;i<this.accessibleCellIdx.size();i++) {
+      int[] point1 = getCellPosByIdx(accessibleCellIdx.get(i));
+      for (int j=i+1;j<this.accessibleCellIdx.size();j++) {
+        int[] point2 = getCellPosByIdx(accessibleCellIdx.get(j));
+        int dist = calShortestPath(point1[0], point1[1], point2[0], point2[1]);
+        if (dist<HUGE_POSITIVE) {
+          distDistribution.add(dist);
+        }
+//        System.out.println("Point " + point1[0] + "," + point1[1] + " to point " + point2[0] + "," + point2[1] + " is " + dist);
+      }
+    }
+    return distDistribution;
+  }
+
+  public HashMap<Integer,Double> hist() {
+    distDistribution();
+    HashMap<Integer,Integer> histOcc = new HashMap<>();
+    for (int i=0;i<distDistribution.size();i++) {
+      int key = distDistribution.get(i);
+      int occ = 0;
+      if (histOcc.containsKey(key)) {
+        occ = histOcc.get(key);
+      }
+      histOcc.put(key, occ+1);
+    }
+    HashMap<Integer,Double> hist = new HashMap<>();
+    for (Map.Entry<Integer, Integer> entry : histOcc.entrySet()) {
+      int key = entry.getKey();
+      int occ = entry.getValue();
+      hist.put(key, (double) occ/distDistribution.size());
+    }
+    return hist;
+  }
+
   /*
    * 
    * http://cs.fit.edu/~ryan/java/programs/graph/Dijkstra-java.html
@@ -66,7 +179,7 @@ public abstract class Maze {
 	  for(int i=0;i<distance.length;i++)
 		  for(int j=0;j<distance[0].length;j++)
 		  {
-			  distance[i][j] = 10000;
+			  distance[i][j] = HUGE_POSITIVE;
 			  visited[i][j] = false;
 			  
 //			  if(maze[i][j]==0)
@@ -80,7 +193,7 @@ public abstract class Maze {
 	  {
 		  for(int j=0;j<maze[0].length;j++)
 		  {
-			  MazePosition next = minPos(distance,visited);
+			  Cell next = minPos(distance,visited);
 			  if(next==null)
 				  continue;
 			  
@@ -88,10 +201,10 @@ public abstract class Maze {
 			  
 			 // System.out.println(next);
 			  
-			  List<MazePosition> neighbors = getUnvisitedPos(next.x,next.y,visited);
+			  List<Cell> neighbors = getUnvisitedPos(next.x,next.y,visited);
 			  
 	//		  System.out.println(neighbors.size());
-			  for(MazePosition n : neighbors)
+			  for(Cell n : neighbors)
 			  {
 			//	  System.out.print(n+": ");
 //			//	  System.out.println(distance[next.x][next.y]);
@@ -113,18 +226,18 @@ public abstract class Maze {
 	  return distance;
   }
   
-  private MazePosition minPos(int[][] dist, boolean[][] visited)
+  private Cell minPos(int[][] dist, boolean[][] visited)
   {
-	  int x = 10000;
+	  int x = HUGE_POSITIVE;
 	  
-	  MazePosition minPos = null;
+	  Cell minPos = null;
 	  
 	  for(int i=0;i<dist.length;i++)
 		  for(int j=0;j<dist[0].length;j++)
 		  {
 			  if(!visited[i][j] && dist[i][j]<x)
 			  {
-				  minPos = new MazePosition(i,j);
+				  minPos = new Cell(i,j);
 	//			  System.out.println(minPos);
 				  x = dist[i][j];
 			  }
@@ -172,18 +285,16 @@ public abstract class Maze {
 //    	
 //    	
 //    }
-//    
-    
-    
+//
     return length;
   }
   
-  protected List<MazePosition> getUnvisitedPos(int x, int y, boolean[][] visited)
+  protected List<Cell> getUnvisitedPos(int x, int y, boolean[][] visited)
   {
 	  int[] bothX = {x-1,x,x+1};
 	  int[] bothY = {y-1,y,y+1};
 	  
-	  List<MazePosition> unvisited = new ArrayList();
+	  List<Cell> unvisited = new ArrayList();
 	  
 	  for(int i : bothX)
 		  for(int j : bothY)
@@ -192,9 +303,9 @@ public abstract class Maze {
 				  continue;
 			  try{
 				//  System.out.println(maze[i][j]+" "+i+" "+j);
-				  if(maze[i][j]==1 && !visited[i][j])
+				  if(maze[i][j]==ACCESSIBLE && !visited[i][j])
 				  {
-					  unvisited.add(new MazePosition(i,j));
+					  unvisited.add(new Cell(i,j));
 					//  System.out.println(i+" "+j);
 				  }
 			  }catch(Exception e){}
@@ -205,13 +316,16 @@ public abstract class Maze {
 	  return unvisited;
   }
   
-  private boolean contain(ArrayList<MazePosition> visited, int x, int y)
+  private boolean contain(ArrayList<Cell> visited, int x, int y)
   {
-	  for(MazePosition maze : visited)
+	  for(Cell maze : visited)
 	  {
 		  if(maze.x == x && maze.y == y)
 			  return true;
 	  }
 	  return false;
   }
+
+  public abstract void plot();
+
 }

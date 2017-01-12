@@ -1,16 +1,16 @@
 package maze;
 
-public class MazePosition {
+public class Cell {
 	public int x, y;
 	
 	
-	public MazePosition(int x,int y){
+	public Cell(int x, int y){
 		this.x = x;
 		this.y = y;
 		
 	}
 	
-	public boolean equals(MazePosition second)
+	public boolean equals(Cell second)
 	{
 		return x==second.x && y==second.y;
 	}
