@@ -1,11 +1,8 @@
 package maze;
 
-import javafx.scene.control.Tab;
+import generators.Builder;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by Jialin Liu on 08/12/2016.
@@ -16,15 +13,21 @@ import java.util.Map;
  * https://google.github.io/styleguide/javaguide.html
  */
 public abstract class Maze {
-  private final static int ACCESSIBLE = 1;
-  private final static int NON_ACCESSIBLE = 0;
-  private final static int HUGE_POSITIVE = 1000000;
+  protected final static int ACCESSIBLE = 1;
+  protected final static int NON_ACCESSIBLE = 0;
+  protected final static int HUGE_POSITIVE = 1000000;
   protected static HashMap<Integer, int[]> idxCellHashMap;
 
   protected int[][] maze;
+  protected int width;
+  protected int height;
   protected ArrayList<Integer> accessibleCellIdx;
 
   protected ArrayList<Integer> distDistribution;
+
+  protected int[][] distance;
+  protected int[][] previousCell;
+  protected int maxDist = HUGE_POSITIVE;
 
   public Maze(int[][] maze) {
     this.maze = maze;
@@ -32,6 +35,16 @@ public abstract class Maze {
     this.idxCellHashMap = new HashMap<>();
     fillIdxCellHashMap();
     updateNbAccessibleCell();
+    width = maze[0].length;
+    height = maze.length;
+  }
+
+  public void clearMaze() {
+    for (int i=0;i<maze.length;i++) {
+      for (int j = 0; j < maze[0].length; j++) {
+        maze[i][j] = 0;
+      }
+    }
   }
 
   public void updateNbAccessibleCell() {
@@ -47,6 +60,26 @@ public abstract class Maze {
         }
       }
     }
+    maxDist = maze.length*maze[0].length;
+//    clearDist();
+  }
+
+  public void clearDist() {
+    previousCell = new int[accessibleCellIdx.size()][accessibleCellIdx.size()];
+    distance = new int[accessibleCellIdx.size()][accessibleCellIdx.size()];
+    for (int i=0;i<accessibleCellIdx.size();i++) {
+      clearDist(i);
+    }
+  }
+
+  public void clearDist(int idx) {
+    maxDist = maze.length*maze[0].length;
+    for (int j=0;j<accessibleCellIdx.size();j++) {
+      distance[idx][j] = maxDist;
+      previousCell[idx][j] = -1;
+    }
+    distance[idx][idx] = 0;
+    previousCell[idx][idx] = idx;
   }
 
   public void updateMaze(int[] bits) {
@@ -131,23 +164,27 @@ public abstract class Maze {
   }
 
   public ArrayList<Integer> distDistribution() {
+//    clearDist();
+//    for (int i=0;i<this.accessibleCellIdx.size();i++) {
+//      shortestPath(i);
+//    }
     this.distDistribution = new ArrayList<>();
-//    System.out.println("==============" + this.accessibleCellIdx.size());
     for (int i=0;i<this.accessibleCellIdx.size();i++) {
       int[] point1 = getCellPosByIdx(accessibleCellIdx.get(i));
       for (int j=i+1;j<this.accessibleCellIdx.size();j++) {
         int[] point2 = getCellPosByIdx(accessibleCellIdx.get(j));
-        int dist = calShortestPath(point1[0], point1[1], point2[0], point2[1]);
-        if (dist<HUGE_POSITIVE) {
-          distDistribution.add(dist);
-        }
-//        System.out.println("Point " + point1[0] + "," + point1[1] + " to point " + point2[0] + "," + point2[1] + " is " + dist);
+        int dist1 = calShortestPath(point1[0], point1[1], point2[0], point2[1]);
+//        int dist2 = Math.min(this.distance[i][j], this.distance[j][i]);
+        distDistribution.add(dist1);
+//        if (dist1 == maxDist) {
+//          System.out.println("No path found between point " + point1[0] + "," + point1[1] + " to point " + point2[0] + "," + point2[1]);
+//        }
       }
     }
     return distDistribution;
   }
 
-  public HashMap<Integer,Double> hist() {
+  public HashMap<Integer,Integer> hist() {
     distDistribution();
     HashMap<Integer,Integer> histOcc = new HashMap<>();
     for (int i=0;i<distDistribution.size();i++) {
@@ -158,13 +195,133 @@ public abstract class Maze {
       }
       histOcc.put(key, occ+1);
     }
+    if (histOcc.containsKey(maxDist)) {
+      System.out.println("No path found between " + histOcc.get(maxDist) + " pairs of points");
+    }
+    return histOcc;
+  }
+
+  public static HashMap<Integer,Double> hist(HashMap<Integer,Integer> histOcc, int nbPairs) {
     HashMap<Integer,Double> hist = new HashMap<>();
     for (Map.Entry<Integer, Integer> entry : histOcc.entrySet()) {
       int key = entry.getKey();
       int occ = entry.getValue();
-      hist.put(key, (double) occ/distDistribution.size());
+      hist.put(key, (double) occ/nbPairs);
     }
     return hist;
+  }
+
+  public int getNbPairs() {
+    return distDistribution.size();
+  }
+
+  public double expactedDist() {
+    distDistribution();
+    HashMap<Integer,Integer> histOcc = new HashMap<>();
+    for (int i=0;i<distDistribution.size();i++) {
+      int key = distDistribution.get(i);
+      int occ = 0;
+      if (histOcc.containsKey(key)) {
+        occ = histOcc.get(key);
+      }
+      histOcc.put(key, occ+1);
+    }
+    double entropy = 0.0;
+    for (Map.Entry<Integer, Integer> entry : histOcc.entrySet()) {
+      double key = entry.getKey();
+      double freq = (double) entry.getValue()/distDistribution.size();
+      entropy += key * freq;
+    }
+    return entropy;
+  }
+
+
+  public void shortestPath(int idx) {
+    ArrayList<Integer> unvisited = initUnvisited();
+    unvisited.remove(idx);
+    while (!unvisited.isEmpty()) {
+      int selectedIdx = findMinDist(idx, unvisited);
+      previousCell[idx][selectedIdx] = -1;
+      unvisited.remove(new Integer(selectedIdx));
+
+      ArrayList<Integer> neighbors = neighbor(selectedIdx);
+      for (Integer neighbor : neighbors) {
+        int alternate = distance[idx][selectedIdx] + 1;
+        if (alternate < distance[idx][neighbor]) {
+          distance[idx][neighbor] = alternate;
+          previousCell[idx][neighbor] = selectedIdx;
+          System.out.println(" ================== updated");
+        }
+      }
+    }
+  }
+
+  public ArrayList<Integer> initUnvisited() {
+    ArrayList<Integer> unvisited = new ArrayList<>();
+    for (int i=0;i<this.accessibleCellIdx.size();i++) {
+      unvisited.add(i);
+    }
+    return unvisited;
+  }
+
+  public ArrayList<Integer> neighbor(int idx) {
+    int cellIdx = this.accessibleCellIdx.get(idx);
+
+    int x = this.idxCellHashMap.get(cellIdx)[0];
+    int y = this.idxCellHashMap.get(cellIdx)[1];
+    ArrayList<Integer> neighbors = new ArrayList<>();
+    if (x>0) {
+      if (y>0) {
+        int toAddIdx = findIdx((x-1)*maze[0].length+y-1);
+        if (toAddIdx>=0) {
+          neighbors.add(toAddIdx);
+        }
+      }
+      if (y<maze[0].length-1) {
+        int toAddIdx = findIdx((x-1)*maze[0].length+y+1);
+        if (toAddIdx>=0) {
+          neighbors.add(toAddIdx);
+        }
+      }
+    }
+    if (x<maze.length-1) {
+      if (y>0) {
+        int toAddIdx = findIdx((x+1)*maze[0].length+y-1);
+        if (toAddIdx>=0) {
+          neighbors.add(toAddIdx);
+        }
+      }
+      if (y<maze[0].length-1) {
+        int toAddIdx = findIdx((x+1)*maze[0].length+y+1);
+        if (toAddIdx>=0) {
+          neighbors.add(toAddIdx);
+        }
+      }
+    }
+    return neighbors;
+  }
+
+  public int findIdx(int value) {
+    for (int i=0;i<this.accessibleCellIdx.size();i++) {
+      if (accessibleCellIdx.get(i)==value) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  public int findMinDist(int idx, ArrayList<Integer> unvisited) {
+    int minDist = maxDist;
+    int idxDest = 0;
+    for (int i=0;i<unvisited.size();i++) {
+      int idxAccessibleCell = unvisited.get(i);
+      if (distance[idx][idxAccessibleCell]<minDist) {
+        System.out.println(idxDest + " replaced by " +idxAccessibleCell);
+        minDist = distance[idx][idxAccessibleCell];
+        idxDest = idxAccessibleCell;
+      }
+    }
+    return idxDest;
   }
 
   /*
@@ -179,7 +336,7 @@ public abstract class Maze {
 	  for(int i=0;i<distance.length;i++)
 		  for(int j=0;j<distance[0].length;j++)
 		  {
-			  distance[i][j] = HUGE_POSITIVE;
+			  distance[i][j] = maxDist;
 			  visited[i][j] = false;
 			  
 //			  if(maze[i][j]==0)
@@ -228,7 +385,7 @@ public abstract class Maze {
   
   private Cell minPos(int[][] dist, boolean[][] visited)
   {
-	  int x = HUGE_POSITIVE;
+	  int x = maxDist;
 	  
 	  Cell minPos = null;
 	  
@@ -246,7 +403,7 @@ public abstract class Maze {
   }
 
   public int calShortestPath(int x1, int y1, int x2, int y2) {
-    int length = Integer.MAX_VALUE;
+    int length = maxDist;
     
     int [][] allsp = calShortestPath(x1, y1);
     length = allsp[x2][y2];
@@ -327,5 +484,24 @@ public abstract class Maze {
   }
 
   public abstract void plot();
+
+  //http://www.contralogic.com/2d-pac-man-style-maze-generation/
+  public void generatorWithoutDeadEnd () {
+    clearMaze();
+    Random rdm = new Random();
+    int nbBuilders = rdm.nextInt(5);
+    int x,y;
+    Builder[] builders = new Builder[5];
+    for (int i=0; i<nbBuilders; i++) {
+      x = rdm.nextInt(width);
+      y = rdm.nextInt(height);
+      maze[x][y] = 1;
+      builders[i] = new Builder(x,y);
+    }
+    int t = 0;
+    while (t < 100) {
+
+    }
+  }
 
 }

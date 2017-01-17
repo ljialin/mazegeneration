@@ -57,7 +57,8 @@ public class Test {
         PrintWriter writer = new PrintWriter(filename+".dat", "UTF-8");
         for (i=0; i<distDistribution.size(); i++) {
           writer.println(distDistribution.get(i));
-        }
+					System.out.println(distDistribution.get(i));
+				}
         writer.close();
       } catch (IOException e) {
         // do something

@@ -36,4 +36,33 @@ public class PacmanMaze extends Maze {
     frame.setVisible(true);
   }
 
+  @Override
+  public void updateMaze(int[] bits) {
+    assert (bits.length == maze.length*maze[0].length/2);
+    for (int i=0;i<maze.length;i++) {
+      for (int j = 0; j < maze[0].length/2; j++) {
+        maze[i][j] = bits[i * maze[0].length/2 + j];
+        maze[i][maze[0].length-1-j] = bits[i * maze[0].length/2 + j];
+      }
+    }
+    updateNbAccessibleCell();
+  }
+
+  @Override
+  public String toString(){
+
+    String st = "";
+    for(int i=0;i<maze.length;i++)
+    {
+      for(int j=0;j<maze[0].length;j++)
+      {
+        if(maze[i][j]==NON_ACCESSIBLE)
+          st += "0";
+        else
+          st+=" ";
+      }
+      st += "\n";
+    }
+    return st;
+  }
 }
