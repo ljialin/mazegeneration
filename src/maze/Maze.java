@@ -1,6 +1,6 @@
 package maze;
 
-import generators.Builder;
+import generators.Spawner;
 
 import java.util.*;
 
@@ -491,12 +491,12 @@ public abstract class Maze {
     Random rdm = new Random();
     int nbBuilders = rdm.nextInt(5);
     int x,y;
-    Builder[] builders = new Builder[5];
+    Spawner[] spawners = new Spawner[5];
     for (int i=0; i<nbBuilders; i++) {
       x = rdm.nextInt(width);
       y = rdm.nextInt(height);
       maze[x][y] = 1;
-      builders[i] = new Builder(x,y);
+      spawners[i] = new Spawner(x,y);
     }
     int t = 0;
     while (t < 100) {
