@@ -26,4 +26,16 @@ public class IntVector2d {
     this.x += toAdd.x;
     this.y += toAdd.y;
   }
+
+  public IntVector2d addToNew(IntVector2d toAdd) {
+    IntVector2d newV = new IntVector2d(this.x+toAdd.x, this.y+toAdd.y);
+    return newV;
+  }
+
+  @Override
+  public String toString() {
+    String str = new String();
+    str = "("  + x + "," + y + ")";
+    return str;
+  }
 }

@@ -17,30 +17,68 @@ public class Builder {
   IntVector2d dir;
   int dist;
   int range;
+  int width;
+  int height;
   Random rdm;
-
+  boolean stopped;
 
   public Builder(IntVector2d pos, IntVector2d dir) {
     this.pos = new IntVector2d(pos);
     this.dir = new IntVector2d(dir);
     this.rdm = new Random();
-    MapBuilder.grid[pos.x][pos.y] = 1;
+    this.stopped = false;
+    expand();
+  }
+
+  public void setSize(int width, int height) {
+    this.width = width;
+    this.height = height;
+    this.range = Math.min(width,height)/4;
+    randomiseDist();
   }
 
   public void randomiseDist() {
     if (range == 0) {
-      this.dist = rdm.nextInt(5);
+      this.dist = rdm.nextInt(8)+2;
     } else {
-      this.dist = rdm.nextInt(range);
+      this.dist = rdm.nextInt(range)+2;
+    }
+    if (this.dist%2==0) {
+      this.dist++;
     }
   }
 
   public void expand() {
-    if (this.dist==0) {
-      randomise();
+    if (!stopped) {
+      if (this.dist <= 0) {
+        randomise();
+      } else {
+        IntVector2d newPos = pos.addToNew(dir);
+        if (newPos.x >= width || newPos.x < 0
+            || newPos.y >= height || newPos.y < 0) {
+          System.out.println(pos + "+" + dir + "=" + newPos +
+          " with old dist=" + dist);
+          randomise();
+          System.out.println(pos + "+" + dir +
+              " with new dist=" + dist);
+        } else if (MapBuilder.checkFilled(newPos) == true) {
+          if (MapBuilder.checkFilledNeighbors(pos)>1) {
+            stopped = true;
+            System.out.println("Stopped at pos=" + pos + " with dir=" + dir +
+              " and dist=" + dist);
+          } else {
+            randomise();
+          }
+        } else {
+          MapBuilder.fillSquare(pos);
+          System.out.println("Filled : " + pos + "+" + dir + "=" + newPos +
+              " with old dist=" + dist);
+          this.pos.add(dir);
+          MapBuilder.markBuilder(pos);
+          this.dist--;
+        }
+      }
     }
-    this.pos.add(this.dir);
-    this.dist--;
   }
 
   public void randomise() {
