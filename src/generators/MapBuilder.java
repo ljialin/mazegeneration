@@ -164,5 +164,12 @@ public class MapBuilder {
 //      System.out.println(mb);
       Thread.sleep(100);
     }
+    Double d1 = new Double(1.0);
+    System.out.println("d1.equals(1.0)=" + d1.equals(1.0));
+    System.out.println("d1.compareTo(0.0)=" + d1.compareTo(0.0));
+    System.out.println("d1.compareTo(3.0)=" + d1.compareTo(3.0));
+    System.out.println("d1.compareTo(1.0)=" + d1.compareTo(1.0));
+
+
   }
 }
